@@ -37,6 +37,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     ProgressDialog mProgressDialog;
     Bitmap mCurrentImage1;
     Bitmap mCurrentImage2;
+    TextView mScoreTextView;
 
     JSch mJsch;
     Session mSession;
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     int mCurrentId2 = -1;
     Date mCurrentDate1;
     Date mCurrentDate2;
+    int mCurrentScore = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
         mImageView1 = (ImageView) findViewById(R.id.image_view_1);
         mImageView2 = (ImageView) findViewById(R.id.image_view_2);
+        mScoreTextView = (TextView) findViewById(R.id.score_textview);
     }
 
     @Override
@@ -117,21 +121,26 @@ public class MainActivity extends AppCompatActivity {
         if (v == mImageView1) {
             if (mCurrentDate1.before(mCurrentDate2)) {
                 Snackbar.make(mImageView1, getString(R.string.answer_correct), Snackbar.LENGTH_SHORT).show();
+                mCurrentScore++;
             }
             else {
                 Snackbar.make(mImageView1, getString(R.string.answer_incorrect), Snackbar.LENGTH_SHORT).show();
+                mCurrentScore = 0;
             }
         } else if (v == mImageView2) {
             if (mCurrentDate2.before(mCurrentDate1)) {
                 Snackbar.make(mImageView1, getString(R.string.answer_correct), Snackbar.LENGTH_SHORT).show();
+                mCurrentScore++;
             }
             else {
                 Snackbar.make(mImageView1, getString(R.string.answer_incorrect), Snackbar.LENGTH_SHORT).show();
+                mCurrentScore = 0;
             }
         }
 
         mImageView1.setImageResource(android.R.color.transparent);
         mImageView2.setImageResource(android.R.color.transparent);
+        mScoreTextView.setText(String.valueOf(mCurrentScore));
         loadNextPair();
     }
 

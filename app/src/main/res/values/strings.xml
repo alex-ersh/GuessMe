@@ -14,4 +14,5 @@
     <string name="err_decode_img">Decoding img error:</string>
     <string name="err_no_exif">No EXIF info:</string>
     <string name="err_no_images_names">No image data</string>
+    <string name="score_initial">0</string>
 </resources>
