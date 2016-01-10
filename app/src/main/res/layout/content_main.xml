@@ -19,17 +19,63 @@
         android:visibility="invisible"
         android:layout_centerInParent="true"/>
 
-    <ImageView android:id="@+id/image_view_1"
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/center_shim_view"
-        android:onClick="onNextPair" />
+        android:layout_above="@id/center_shim_view"
+        tools:context="com.example.ersh.guessme.MainActivity">
 
-    <ImageView android:id="@+id/image_view_2"
+        <ImageView android:id="@+id/image_view_1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:onClick="onNextPair" />
+
+        <TextView android:id="@+id/image1_date_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:typeface="serif"
+            android:textSize="@dimen/img_date_text_size"
+            android:textColor="@color/colorImgDateText" />
+
+        <View android:id="@+id/image1_answer_status_view"
+            android:layout_width="@dimen/img_answer_status_view_size"
+            android:layout_height="@dimen/img_answer_status_view_size"
+            android:layout_above="@id/image1_date_textview"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="@dimen/img_answer_status_view_margin" />
+    </RelativeLayout>
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/center_shim_view"
-        android:onClick="onNextPair" />
+        tools:context="com.example.ersh.guessme.MainActivity">
+
+        <ImageView android:id="@+id/image_view_2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:onClick="onNextPair" />
+
+        <TextView android:id="@+id/image2_date_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:typeface="serif"
+            android:textSize="@dimen/img_date_text_size"
+            android:textColor="@color/colorImgDateText" />
+
+        <View android:id="@+id/image2_answer_status_view"
+            android:layout_width="@dimen/img_answer_status_view_size"
+            android:layout_height="@dimen/img_answer_status_view_size"
+            android:layout_above="@id/image2_date_textview"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="@dimen/img_answer_status_view_margin" />
+    </RelativeLayout>
 
     <TextView android:id="@+id/score_textview"
         android:layout_width="@dimen/score_textview_size"

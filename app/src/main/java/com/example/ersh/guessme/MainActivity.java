@@ -53,7 +53,9 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Vector;
 
@@ -66,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
     Bitmap mCurrentImage1;
     Bitmap mCurrentImage2;
     TextView mScoreTextView;
+    TextView mImgDateTextView1;
+    TextView mImgDateTextView2;
+    View mImgAnswerStatusView1;
+    View mImgAnswerStatusView2;
 
     JSch mJsch;
     Session mSession;
@@ -78,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
     Date mCurrentDate1;
     Date mCurrentDate2;
     int mCurrentScore = 0;
+    Boolean mImgChoosingPending = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +97,15 @@ public class MainActivity extends AppCompatActivity {
         mImageView1 = (ImageView) findViewById(R.id.image_view_1);
         mImageView2 = (ImageView) findViewById(R.id.image_view_2);
         mScoreTextView = (TextView) findViewById(R.id.score_textview);
+        mImgDateTextView1 = (TextView) findViewById(R.id.image1_date_textview);
+        mImgDateTextView2 = (TextView) findViewById(R.id.image2_date_textview);
+        mImgAnswerStatusView1 = findViewById(R.id.image1_answer_status_view);
+        mImgAnswerStatusView2 = findViewById(R.id.image2_answer_status_view);
+
+        mImgDateTextView1.setVisibility(View.INVISIBLE);
+        mImgDateTextView2.setVisibility(View.INVISIBLE);
+        mImgAnswerStatusView1.setVisibility(View.INVISIBLE);
+        mImgAnswerStatusView2.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -118,29 +134,54 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onNextPair(View v) {
-        if (v == mImageView1) {
-            if (mCurrentDate1.before(mCurrentDate2)) {
-                Snackbar.make(mImageView1, getString(R.string.answer_correct), Snackbar.LENGTH_SHORT).show();
-                mCurrentScore++;
+        if (mImgChoosingPending) {
+            if (v == mImageView1) {
+                if (mCurrentDate1.before(mCurrentDate2)) {
+                    mImgAnswerStatusView1.setBackgroundResource(R.drawable.tick);
+                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mCurrentScore++;
+                } else {
+                    mImgAnswerStatusView1.setBackgroundResource(R.drawable.cross);
+                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mCurrentScore = 0;
+                }
+            } else if (v == mImageView2) {
+                if (mCurrentDate2.before(mCurrentDate1)) {
+                    mImgAnswerStatusView2.setBackgroundResource(R.drawable.tick);
+                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mCurrentScore++;
+                } else {
+                    mImgAnswerStatusView2.setBackgroundResource(R.drawable.cross);
+                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mCurrentScore = 0;
+                }
             }
-            else {
-                Snackbar.make(mImageView1, getString(R.string.answer_incorrect), Snackbar.LENGTH_SHORT).show();
-                mCurrentScore = 0;
-            }
-        } else if (v == mImageView2) {
-            if (mCurrentDate2.before(mCurrentDate1)) {
-                Snackbar.make(mImageView1, getString(R.string.answer_correct), Snackbar.LENGTH_SHORT).show();
-                mCurrentScore++;
-            }
-            else {
-                Snackbar.make(mImageView1, getString(R.string.answer_incorrect), Snackbar.LENGTH_SHORT).show();
-                mCurrentScore = 0;
-            }
+
+            mImgAnswerStatusView1.setVisibility(View.VISIBLE);
+            mImgAnswerStatusView2.setVisibility(View.VISIBLE);
+
+            SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.US);
+            mImgDateTextView1.setText(formatter.format(mCurrentDate1));
+            mImgDateTextView1.setVisibility(View.VISIBLE);
+            mImgDateTextView2.setText(formatter.format(mCurrentDate2));
+            mImgDateTextView2.setVisibility(View.VISIBLE);
+            mScoreTextView.setText(String.valueOf(mCurrentScore));
+            mImgChoosingPending = false;
+            return;
         }
 
+        mImgAnswerStatusView1.setBackgroundResource(android.R.color.transparent);
+        mImgAnswerStatusView2.setBackgroundResource(android.R.color.transparent);
+        mImgDateTextView1.setVisibility(View.INVISIBLE);
+        mImgDateTextView2.setVisibility(View.INVISIBLE);
+        mImgAnswerStatusView1.setVisibility(View.INVISIBLE);
+        mImgAnswerStatusView2.setVisibility(View.INVISIBLE);
         mImageView1.setImageResource(android.R.color.transparent);
         mImageView2.setImageResource(android.R.color.transparent);
-        mScoreTextView.setText(String.valueOf(mCurrentScore));
         loadNextPair();
     }
 
@@ -350,6 +391,7 @@ public class MainActivity extends AppCompatActivity {
             if (result) {
                 mImageView1.setImageBitmap(mCurrentImage1);
                 mImageView2.setImageBitmap(mCurrentImage2);
+                mImgChoosingPending = true;
             }
         }
 
