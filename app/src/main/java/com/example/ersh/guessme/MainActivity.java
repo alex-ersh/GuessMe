@@ -60,6 +60,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import static com.example.ersh.guessme.R.drawable.img_date_textview_correct;
@@ -185,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
             mActiveImgAnswerStatusView.startAnimation(mFadeOutAnim);
 
             SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.US);
+            formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
             mImgDateTextView1.setText(formatter.format(mCurrentDate1));
             mImgDateTextView1.startAnimation(mFadeOutAnim);
             mImgDateTextView2.setText(formatter.format(mCurrentDate2));
