@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <solid android:color="@color/colorCorrectAnswerTextView" />
+
+    <padding
+        android:bottom="@dimen/img_date_textview_padding"
+        android:right="@dimen/img_date_textview_padding"
+        android:left="@dimen/img_date_textview_padding"
+        android:top="@dimen/img_date_textview_padding"/>
+
+    <corners android:radius="8dp" />
+</shape>

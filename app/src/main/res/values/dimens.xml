@@ -6,4 +6,8 @@
     <dimen name="score_textview_padding">12dp</dimen>
     <dimen name="score_textview_size">70dp</dimen>
     <dimen name="image_1_2_gap">3dp</dimen>
+    <dimen name="img_date_text_size">20sp</dimen>
+    <dimen name="img_date_textview_padding">2dp</dimen>
+    <dimen name="img_answer_status_view_margin">10dp</dimen>
+    <dimen name="img_answer_status_view_size">60dp</dimen>
 </resources>
