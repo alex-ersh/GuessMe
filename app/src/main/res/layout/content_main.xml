@@ -19,6 +19,13 @@
         android:visibility="invisible"
         android:layout_centerInParent="true"/>
 
+    <ProgressBar android:id="@+id/center_progress_bar_view"
+        android:indeterminate="true"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_centerInParent="true"
+        android:visibility="invisible" />
+
     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
@@ -31,6 +38,15 @@
             android:layout_height="match_parent"
             android:layout_centerInParent="true"
             android:onClick="onNextPair" />
+    </RelativeLayout>
+
+    <!--Need to be in separate Layout cause of animation trouble-->
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/center_shim_view"
+        tools:context="com.example.ersh.guessme.MainActivity">
 
         <TextView android:id="@+id/image1_date_textview"
             android:layout_width="wrap_content"
@@ -60,6 +76,15 @@
             android:layout_height="match_parent"
             android:layout_centerInParent="true"
             android:onClick="onNextPair" />
+    </RelativeLayout>
+
+    <!--Need to be in separate Layout cause of animation trouble-->
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/center_shim_view"
+        tools:context="com.example.ersh.guessme.MainActivity">
 
         <TextView android:id="@+id/image2_date_textview"
             android:layout_width="wrap_content"

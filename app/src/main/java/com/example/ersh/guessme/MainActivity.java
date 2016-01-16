@@ -36,7 +36,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.drew.imaging.ImageMetadataReader;
@@ -59,6 +62,9 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Vector;
 
+import static com.example.ersh.guessme.R.drawable.img_date_textview_correct;
+import static com.example.ersh.guessme.R.drawable.img_date_textview_wrong;
+
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
@@ -72,6 +78,11 @@ public class MainActivity extends AppCompatActivity {
     TextView mImgDateTextView2;
     View mImgAnswerStatusView1;
     View mImgAnswerStatusView2;
+    View mActiveImgAnswerStatusView;
+    ProgressBar mCenterProgressBarView;
+
+    Animation mFadeInAnim;
+    Animation mFadeOutAnim;
 
     JSch mJsch;
     Session mSession;
@@ -101,11 +112,15 @@ public class MainActivity extends AppCompatActivity {
         mImgDateTextView2 = (TextView) findViewById(R.id.image2_date_textview);
         mImgAnswerStatusView1 = findViewById(R.id.image1_answer_status_view);
         mImgAnswerStatusView2 = findViewById(R.id.image2_answer_status_view);
+        mCenterProgressBarView = (ProgressBar) findViewById(R.id.center_progress_bar_view);
 
         mImgDateTextView1.setVisibility(View.INVISIBLE);
         mImgDateTextView2.setVisibility(View.INVISIBLE);
         mImgAnswerStatusView1.setVisibility(View.INVISIBLE);
         mImgAnswerStatusView2.setVisibility(View.INVISIBLE);
+
+        mFadeInAnim = AnimationUtils.loadAnimation(this, R.anim.fadein);
+        mFadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fadeout);
     }
 
     @Override
@@ -138,50 +153,55 @@ public class MainActivity extends AppCompatActivity {
             if (v == mImageView1) {
                 if (mCurrentDate1.before(mCurrentDate2)) {
                     mImgAnswerStatusView1.setBackgroundResource(R.drawable.tick);
-                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_correct);
-                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mImgDateTextView1.setBackgroundResource(img_date_textview_correct);
+                    mImgDateTextView2.setBackgroundResource(img_date_textview_wrong);
                     mCurrentScore++;
                 } else {
                     mImgAnswerStatusView1.setBackgroundResource(R.drawable.cross);
-                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_wrong);
-                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mImgDateTextView1.setBackgroundResource(img_date_textview_wrong);
+                    mImgDateTextView2.setBackgroundResource(img_date_textview_correct);
                     mCurrentScore = 0;
                 }
+
+                mActiveImgAnswerStatusView = mImgAnswerStatusView1;
+                mImgAnswerStatusView2.clearAnimation();
             } else if (v == mImageView2) {
                 if (mCurrentDate2.before(mCurrentDate1)) {
                     mImgAnswerStatusView2.setBackgroundResource(R.drawable.tick);
-                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_wrong);
-                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_correct);
+                    mImgDateTextView1.setBackgroundResource(img_date_textview_wrong);
+                    mImgDateTextView2.setBackgroundResource(img_date_textview_correct);
                     mCurrentScore++;
                 } else {
                     mImgAnswerStatusView2.setBackgroundResource(R.drawable.cross);
-                    mImgDateTextView1.setBackgroundResource(R.drawable.img_date_textview_correct);
-                    mImgDateTextView2.setBackgroundResource(R.drawable.img_date_textview_wrong);
+                    mImgDateTextView1.setBackgroundResource(img_date_textview_correct);
+                    mImgDateTextView2.setBackgroundResource(img_date_textview_wrong);
                     mCurrentScore = 0;
                 }
+
+                mActiveImgAnswerStatusView = mImgAnswerStatusView2;
+                mImgAnswerStatusView1.clearAnimation();
             }
 
-            mImgAnswerStatusView1.setVisibility(View.VISIBLE);
-            mImgAnswerStatusView2.setVisibility(View.VISIBLE);
+            mActiveImgAnswerStatusView.startAnimation(mFadeOutAnim);
 
             SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.US);
             mImgDateTextView1.setText(formatter.format(mCurrentDate1));
-            mImgDateTextView1.setVisibility(View.VISIBLE);
+            mImgDateTextView1.startAnimation(mFadeOutAnim);
             mImgDateTextView2.setText(formatter.format(mCurrentDate2));
-            mImgDateTextView2.setVisibility(View.VISIBLE);
+            mImgDateTextView2.startAnimation(mFadeOutAnim);
             mScoreTextView.setText(String.valueOf(mCurrentScore));
             mImgChoosingPending = false;
             return;
         }
 
-        mImgAnswerStatusView1.setBackgroundResource(android.R.color.transparent);
-        mImgAnswerStatusView2.setBackgroundResource(android.R.color.transparent);
-        mImgDateTextView1.setVisibility(View.INVISIBLE);
-        mImgDateTextView2.setVisibility(View.INVISIBLE);
-        mImgAnswerStatusView1.setVisibility(View.INVISIBLE);
-        mImgAnswerStatusView2.setVisibility(View.INVISIBLE);
-        mImageView1.setImageResource(android.R.color.transparent);
-        mImageView2.setImageResource(android.R.color.transparent);
+        mImgDateTextView1.startAnimation(mFadeInAnim);
+        mImgDateTextView2.startAnimation(mFadeInAnim);
+        if (mActiveImgAnswerStatusView != null) {
+            mActiveImgAnswerStatusView.startAnimation(mFadeInAnim);
+        }
+        mImageView1.startAnimation(mFadeInAnim);
+        mImageView2.startAnimation(mFadeInAnim);
+        mCenterProgressBarView.setVisibility(View.VISIBLE);
         loadNextPair();
     }
 
@@ -315,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (result) {
                 Snackbar.make(mImageView1, getString(R.string.connect_success), Snackbar.LENGTH_SHORT).show();
-                loadNextPair();
+                onNextPair(mImageView1);
             } else {
                 Snackbar.make(mImageView1, getString(R.string.connect_fail), Snackbar.LENGTH_SHORT).show();
             }
@@ -389,8 +409,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean result) {
             if (result) {
+                mCenterProgressBarView.setVisibility(View.INVISIBLE);
                 mImageView1.setImageBitmap(mCurrentImage1);
+                mImageView1.startAnimation(mFadeOutAnim);
                 mImageView2.setImageBitmap(mCurrentImage2);
+                mImageView2.startAnimation(mFadeOutAnim);
                 mImgChoosingPending = true;
             }
         }
