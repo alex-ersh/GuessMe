@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">GuessMe</string>
-    <string name="action_settings">Settings</string>
-    <string name="waiting_for_connection">Waiting for connection…</string>
-    <string name="regular_files_on_server">Regular files on server:</string>
-    <string name="connect_fail">Connection failed</string>
+    <string name="action_settings">Настройки</string>
+    <string name="waiting_for_connection">Соединение…</string>
+    <string name="regular_files_on_server">Файлов на сервере:</string>
+    <string name="connect_fail">Ошибка соединения с сервером</string>
     <string name="err_not_connected">SFTP is not connected</string>
     <string name="err_rand_gen_tries">Maximum img id generation tries exceeded</string>
     <string name="err_incorrect_input">Incorrect input parameters</string>
@@ -12,9 +12,9 @@
     <string name="err_no_exif">No EXIF info:</string>
     <string name="err_no_images_names">No image data</string>
     <string name="score_initial">0</string>
-    <string name="welcome_1_part1">Hello,</string>
-    <string name="welcome_1_part2">Polly!</string>
-    <string name="welcome_2_part1">Remember</string>
-    <string name="welcome_2_part2">what was</string>
-    <string name="welcome_2_part3">earlier?</string>
+    <string name="welcome_1_part1">Привет,</string>
+    <string name="welcome_1_part2">Полли!</string>
+    <string name="welcome_2_part1">Вспомни,</string>
+    <string name="welcome_2_part2">что было</string>
+    <string name="welcome_2_part3">раньше?</string>
 </resources>

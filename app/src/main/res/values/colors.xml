@@ -9,4 +9,5 @@
     <color name="colorImgDateText">#FFFFFF</color>
     <color name="colorCorrectAnswerTextView">#b0009900</color>
     <color name="colorWrongAnswerTextView">#b0ad1e22</color>
+    <color name="colorWelcomeText">#FF909090</color>
 </resources>

@@ -31,7 +31,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -103,9 +102,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
         mImageView1 = (ImageView) findViewById(R.id.image_view_1);
         mImageView2 = (ImageView) findViewById(R.id.image_view_2);
         mScoreTextView = (TextView) findViewById(R.id.score_textview);
@@ -311,7 +307,7 @@ public class MainActivity extends AppCompatActivity {
                     if (file.getAttrs().isReg())
                     {
                         String name = file.getFilename();
-                        Log.d(TAG, name);
+                        //Log.d(TAG, name);
                         mFilenameArray.add(name);
                     }
                 }
@@ -336,7 +332,6 @@ public class MainActivity extends AppCompatActivity {
             mProgressDialog = null;
 
             if (result) {
-                Snackbar.make(mImageView1, getString(R.string.connect_success), Snackbar.LENGTH_SHORT).show();
                 onNextPair(mImageView1);
             } else {
                 Snackbar.make(mImageView1, getString(R.string.connect_fail), Snackbar.LENGTH_SHORT).show();
