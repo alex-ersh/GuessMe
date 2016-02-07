@@ -24,11 +24,10 @@ SOFTWARE.
 
 package com.example.ersh.guessme;
 
-import android.app.ProgressDialog;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -41,26 +40,9 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.exif.ExifSubIFDDirectory;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
-import java.util.Random;
 import java.util.TimeZone;
-import java.util.Vector;
 
 import static com.example.ersh.guessme.R.drawable.img_date_textview_correct;
 import static com.example.ersh.guessme.R.drawable.img_date_textview_wrong;
@@ -70,9 +52,6 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView mImageView1;
     ImageView mImageView2;
-    ProgressDialog mProgressDialog;
-    Bitmap mCurrentImage1;
-    Bitmap mCurrentImage2;
     TextView mScoreTextView;
     TextView mImgDateTextView1;
     TextView mImgDateTextView2;
@@ -84,18 +63,12 @@ public class MainActivity extends AppCompatActivity {
     Animation mFadeInAnim;
     Animation mFadeOutAnim;
 
-    JSch mJsch;
-    Session mSession;
-    ChannelSftp mSftp;
-
-    Vector<String> mFilenameArray = new Vector<>();
-    Boolean mIsConnected = false;
-    int mCurrentId1 = -1;
-    int mCurrentId2 = -1;
-    Date mCurrentDate1;
-    Date mCurrentDate2;
+    private long mLastClickTime = 0;
     int mCurrentScore = 0;
     Boolean mImgChoosingPending = false;
+    ImagePairProducer mImageProducer;
+    ImagePairProducer.ImagePair mCurImagePair;
+    AsyncTask<Void, Void, Boolean> mGetImageAsyncTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,19 +96,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mProgressDialog = ProgressDialog.show(this, getString(R.string.waiting_for_connection),
-                "", true, true);
-        new ConnectSftpTask().execute();
+        mImageProducer = ImagePairProducer.getInstance(getApplicationContext());
+        mImageProducer.startImageFetch();
+        onNextPair(null);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-
-        mFilenameArray.clear();
-        mCurrentId1 = -1;
-        mCurrentId2 = -1;
-        closeSftp();
+        mImageProducer.stopImageFetch();
+        if (mGetImageAsyncTask != null) {
+            mGetImageAsyncTask.cancel(true);
+        }
     }
 
     @Override
@@ -146,9 +118,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onNextPair(View v) {
+        // mis-clicking prevention
+        if (SystemClock.elapsedRealtime() - mLastClickTime < 300){
+            return;
+        }
+        mLastClickTime = SystemClock.elapsedRealtime();
+
         if (mImgChoosingPending) {
             if (v == mImageView1) {
-                if (mCurrentDate1.before(mCurrentDate2)) {
+                if (mCurImagePair.getDateFirst().before(mCurImagePair.getDateSecond())) {
                     mImgAnswerStatusView1.setBackgroundResource(R.drawable.tick);
                     mImgDateTextView1.setBackgroundResource(img_date_textview_correct);
                     mImgDateTextView2.setBackgroundResource(img_date_textview_wrong);
@@ -163,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 mActiveImgAnswerStatusView = mImgAnswerStatusView1;
                 mImgAnswerStatusView2.clearAnimation();
             } else if (v == mImageView2) {
-                if (mCurrentDate2.before(mCurrentDate1)) {
+                if (mCurImagePair.getDateSecond().before(mCurImagePair.getDateFirst())) {
                     mImgAnswerStatusView2.setBackgroundResource(R.drawable.tick);
                     mImgDateTextView1.setBackgroundResource(img_date_textview_wrong);
                     mImgDateTextView2.setBackgroundResource(img_date_textview_correct);
@@ -183,9 +161,9 @@ public class MainActivity extends AppCompatActivity {
 
             SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.US);
             formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
-            mImgDateTextView1.setText(formatter.format(mCurrentDate1));
+            mImgDateTextView1.setText(formatter.format(mCurImagePair.getDateFirst()));
             mImgDateTextView1.startAnimation(mFadeOutAnim);
-            mImgDateTextView2.setText(formatter.format(mCurrentDate2));
+            mImgDateTextView2.setText(formatter.format(mCurImagePair.getDateSecond()));
             mImgDateTextView2.startAnimation(mFadeOutAnim);
             mScoreTextView.setText(String.valueOf(mCurrentScore));
             mImgChoosingPending = false;
@@ -200,7 +178,10 @@ public class MainActivity extends AppCompatActivity {
         mImageView1.startAnimation(mFadeInAnim);
         mImageView2.startAnimation(mFadeInAnim);
         mCenterProgressBarView.setVisibility(View.VISIBLE);
-        loadNextPair();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            mGetImageAsyncTask = new GetImageTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        else
+            mGetImageAsyncTask = new GetImageTask().execute();
     }
 
     @Override
@@ -218,211 +199,42 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void closeSftp() {
-        if (mSftp != null) {
-            mSftp.disconnect();
-            mSftp = null;
-        }
-
-        if (mSession != null) {
-            mSession.disconnect();
-            mSession = null;
-        }
-
-        mJsch = null;
-        mIsConnected = false;
-    }
-
-    private void loadNextPair() {
-        try {
-            if (!mIsConnected) {
-                throw new RuntimeException(getString(R.string.err_not_connected));
-            }
-
-            if (mFilenameArray.size() < 3) {
-                throw new RuntimeException(getString(R.string.err_no_images_names));
-            }
-
-            Random r = new Random();
-            final int MAX_TRIES = 100;
-            int tries = 0;
-            int val;
-
-            while (true) {
-                tries++;
-                if (tries > MAX_TRIES) {
-                    throw new RuntimeException(getString(R.string.err_rand_gen_tries));
-                }
-                val = r.nextInt(mFilenameArray.size());
-                if (val == mCurrentId1) { continue; }
-                mCurrentId1 = val;
-
-                while (true) {
-                    tries++;
-                    if (tries > MAX_TRIES) {
-                        throw new RuntimeException(getString(R.string.err_rand_gen_tries));
-                    }
-                    val = r.nextInt(mFilenameArray.size());
-                    if ((val == mCurrentId2) || (val == mCurrentId1)) { continue; }
-                    mCurrentId2 = val;
-                    break;
-                }
-
-                break;
-            }
-
-            new FetchNewImagePairTask().execute(mCurrentId1, mCurrentId2);
-        } catch (RuntimeException e) {
-            Log.e(TAG, e.getMessage());
-            mCurrentId1 = -1;
-            mCurrentId2 = -1;
-        }
-    }
-
-    private class ConnectSftpTask extends AsyncTask<Void, Void, Boolean> {
-        private static final String TAG = "ConnectSftpTask";
+    private class GetImageTask extends AsyncTask<Void, Void, Boolean> {
+        private static final String TAG = "GetImageTask";
 
         @Override
         protected Boolean doInBackground(Void... params) {
+            int tries = 0;
             try {
-                closeSftp();
-
-                mJsch = new JSch();
-                mJsch.addIdentity(SftpAccessInfo.SFTP_USER,
-                        SftpAccessInfo.SFTP_PRIVATE_KEY.getBytes(), null,
-                        SftpAccessInfo.SFTP_PASS.getBytes());
-                JSch.setConfig("StrictHostKeyChecking", "no");
-
-                mSession = mJsch.getSession(SftpAccessInfo.SFTP_USER,
-                        SftpAccessInfo.SFTP_HOST, SftpAccessInfo.SFTP_PORT);
-                mSession.connect();
-
-                mSftp = (ChannelSftp) mSession.openChannel("sftp");
-                mSftp.connect();
-                @SuppressWarnings("unchecked")
-                Vector<ChannelSftp.LsEntry> filelist = mSftp.ls(".");
-
-                mFilenameArray.clear();
-                for (ChannelSftp.LsEntry file : filelist) {
-                    if (file.getAttrs().isReg())
-                    {
-                        String name = file.getFilename();
-                        //Log.d(TAG, name);
-                        mFilenameArray.add(name);
+                while (tries++ < 20) {
+                    mCurImagePair = mImageProducer.getNextImagePair();
+                    if (mCurImagePair != null) {
+                        //Log.d(TAG, "Got image pair");
+                        return true;
                     }
+                    Thread.sleep(250);
                 }
-
-                Log.i(TAG, getString(R.string.regular_files_on_server) + mFilenameArray.size());
-                mIsConnected = true;
-                return true;
-            } catch (SftpException e) {
+            } catch (InterruptedException e) {
                 Log.e(TAG, e.getMessage());
-                closeSftp();
-                return false;
-            } catch (JSchException e) {
-                Log.e(TAG, e.getMessage());
-                closeSftp();
-                return false;
             }
+
+            return false;
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
-            mProgressDialog.dismiss();
-            mProgressDialog = null;
-
-            if (result) {
-                onNextPair(mImageView1);
-            } else {
-                Snackbar.make(mImageView1, getString(R.string.connect_fail), Snackbar.LENGTH_SHORT).show();
+            if (!result) {
+                Snackbar.make(findViewById(R.id.image_view_1), getString(R.string.err_get_image_pair), Snackbar.LENGTH_SHORT).show();
             }
-        }
-    }
-
-    private class FetchNewImagePairTask extends AsyncTask<Integer, Void, Boolean> {
-        private static final String TAG = "FetchNewImagePairTask";
-
-        @Override
-        protected Boolean doInBackground(Integer... params) {
-            try {
-                if (params.length != 2) {
-                    throw new RuntimeException(getString(R.string.err_incorrect_input));
-                }
-
-                if ((params[0] < 0) || (params[0] >= mFilenameArray.size())
-                        || (params[1] < 0) || (params[1] >= mFilenameArray.size())) {
-                    throw new RuntimeException(getString(R.string.err_incorrect_input_values));
-                }
-
-                if (!mIsConnected) {
-                    throw new RuntimeException(getString(R.string.err_not_connected));
-                }
-
-                ByteArrayOutputStream imgRaw = new ByteArrayOutputStream();
-
-                mSftp.get(mFilenameArray.get(params[0]), imgRaw);
-                byte[] barray = imgRaw.toByteArray();
-                mCurrentImage1 = BitmapFactory.decodeByteArray(barray, 0, barray.length);
-                if (mCurrentImage1 == null) {
-                    throw new RuntimeException(getString(R.string.err_decode_img)
-                            + " " + mFilenameArray.get(params[0]));
-                }
-                mCurrentDate1 = getExifDate(barray);
-                if (mCurrentDate1 == null) {
-                    throw new RuntimeException(getString(R.string.err_no_exif)
-                            + " " + mFilenameArray.get(params[0]));
-                }
-
-                imgRaw.reset();
-                mSftp.get(mFilenameArray.get(params[1]), imgRaw);
-                barray = imgRaw.toByteArray();
-                mCurrentImage2 = BitmapFactory.decodeByteArray(barray, 0, barray.length);
-                if (mCurrentImage2 == null) {
-                    throw new RuntimeException(getString(R.string.err_decode_img)
-                            + " " + mFilenameArray.get(params[1]));
-                }
-                mCurrentDate2 = getExifDate(barray);
-                if (mCurrentDate2 == null) {
-                    throw new RuntimeException(getString(R.string.err_no_exif)
-                            + " " + mFilenameArray.get(params[1]));
-                }
-
-                return true;
-            } catch (SftpException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (RuntimeException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (ImageProcessingException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            if (result) {
-                mCenterProgressBarView.setVisibility(View.INVISIBLE);
-                mImageView1.setImageBitmap(mCurrentImage1);
+            else {
+                mImageView1.setImageBitmap(mCurImagePair.getImageFirst());
                 mImageView1.startAnimation(mFadeOutAnim);
-                mImageView2.setImageBitmap(mCurrentImage2);
+                mImageView2.setImageBitmap(mCurImagePair.getImageSecond());
                 mImageView2.startAnimation(mFadeOutAnim);
                 mImgChoosingPending = true;
             }
-        }
 
-        private Date getExifDate(byte[] imgRaw) throws ImageProcessingException, IOException {
-            Metadata metadata = ImageMetadataReader.readMetadata(
-                    new BufferedInputStream(new ByteArrayInputStream(imgRaw)));
-            ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
-            if (directory == null) {
-                return null;
-            }
-            return directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+            mCenterProgressBarView.setVisibility(View.INVISIBLE);
         }
     }
 }

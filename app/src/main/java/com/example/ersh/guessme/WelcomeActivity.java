@@ -22,6 +22,7 @@ public class WelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
+        ImagePairProducer.getInstance(getApplicationContext()).startImageFetch();
         mWelcomeTextView1 = (TextView) findViewById(R.id.welcome_textview1);
         mWelcomeTextView2 = (TextView) findViewById(R.id.welcome_textview2);
         mWelcomeTextView3 = (TextView) findViewById(R.id.welcome_textview3);

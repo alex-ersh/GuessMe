@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">GuessMe</string>
     <string name="action_settings">Settings</string>
-    <string name="waiting_for_connection">Waiting for connection…</string>
     <string name="regular_files_on_server">Regular files on server:</string>
     <string name="connect_fail">Connection failed</string>
     <string name="err_not_connected">SFTP is not connected</string>
@@ -17,4 +16,6 @@
     <string name="welcome_2_part1">Remember</string>
     <string name="welcome_2_part2">what was</string>
     <string name="welcome_2_part3">earlier?</string>
+    <string name="err_fetch_thread">Network error</string>
+    <string name="err_get_image_pair">Image getting timeout</string>
 </resources>
