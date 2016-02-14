@@ -70,6 +70,7 @@ public class ImagePairProducer {
     private AsyncTask<Void, Void, Boolean> mFetchAsyncTask;
     private Context mContext;
     private static ImagePairProducer mInstance;
+    private Random m_Rand;
 
     public static ImagePairProducer getInstance(Context context) {
         if (mInstance == null) {
@@ -86,6 +87,8 @@ public class ImagePairProducer {
         if (mRunning) {
             return;
         }
+
+        m_Rand = new Random();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             mFetchAsyncTask = new FetchImagePairsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -235,7 +238,6 @@ public class ImagePairProducer {
             throw new RuntimeException(mContext.getString(R.string.err_no_images_names));
         }
 
-        Random r = new Random();
         final int MAX_TRIES = 100;
         int tries = 0;
         int val;
@@ -245,7 +247,7 @@ public class ImagePairProducer {
             if (tries > MAX_TRIES) {
                 throw new RuntimeException(mContext.getString(R.string.err_rand_gen_tries));
             }
-            val = r.nextInt(mFilenameArray.size());
+            val = m_Rand.nextInt(mFilenameArray.size());
             if (val == mCurId1) { continue; }
             mCurId1 = val;
 
@@ -254,7 +256,7 @@ public class ImagePairProducer {
                 if (tries > MAX_TRIES) {
                     throw new RuntimeException(mContext.getString(R.string.err_rand_gen_tries));
                 }
-                val = r.nextInt(mFilenameArray.size());
+                val = m_Rand.nextInt(mFilenameArray.size());
                 if ((val == mCurId2) || (val == mCurId1)) { continue; }
                 mCurId2 = val;
                 break;
@@ -296,29 +298,34 @@ public class ImagePairProducer {
                     mSftp.get(mFilenameArray.get(idPair.getIdFirst()), imgRaw);
                     byte[] barray = imgRaw.toByteArray();
 
-                    imagePair.setImageFirst(BitmapFactory.decodeByteArray(barray, 0, barray.length));
-                    if (imagePair.getImageFirst() == null) {
-                        throw new RuntimeException(mContext.getString(R.string.err_decode_img)
-                                + " " + mFilenameArray.get(idPair.getIdFirst()));
-                    }
-                    imagePair.setDateFirst(getExifDate(barray));
-                    if (imagePair.getDateFirst() == null) {
-                        throw new RuntimeException(mContext.getString(R.string.err_no_exif)
-                                + " " + mFilenameArray.get(idPair.getIdFirst()));
-                    }
+                    try {
+                        imagePair.setImageFirst(BitmapFactory.decodeByteArray(barray, 0, barray.length));
+                        if (imagePair.getImageFirst() == null) {
+                            throw new RuntimeException(mContext.getString(R.string.err_decode_img)
+                                    + " " + mFilenameArray.get(idPair.getIdFirst()));
+                        }
+                        imagePair.setDateFirst(getExifDate(barray));
+                        if (imagePair.getDateFirst() == null) {
+                            throw new RuntimeException(mContext.getString(R.string.err_no_exif)
+                                    + " " + mFilenameArray.get(idPair.getIdFirst()));
+                        }
 
-                    imgRaw.reset();
-                    mSftp.get(mFilenameArray.get(idPair.getIdSecond()), imgRaw);
-                    barray = imgRaw.toByteArray();
-                    imagePair.setImageSecond(BitmapFactory.decodeByteArray(barray, 0, barray.length));
-                    if (imagePair.getImageSecond() == null) {
-                        throw new RuntimeException(mContext.getString(R.string.err_decode_img)
-                                + " " + mFilenameArray.get(idPair.getIdSecond()));
-                    }
-                    imagePair.setDateSecond(getExifDate(barray));
-                    if (imagePair.getDateSecond() == null) {
-                        throw new RuntimeException(mContext.getString(R.string.err_no_exif)
-                                + " " + mFilenameArray.get(idPair.getIdSecond()));
+                        imgRaw.reset();
+                        mSftp.get(mFilenameArray.get(idPair.getIdSecond()), imgRaw);
+                        barray = imgRaw.toByteArray();
+                        imagePair.setImageSecond(BitmapFactory.decodeByteArray(barray, 0, barray.length));
+                        if (imagePair.getImageSecond() == null) {
+                            throw new RuntimeException(mContext.getString(R.string.err_decode_img)
+                                    + " " + mFilenameArray.get(idPair.getIdSecond()));
+                        }
+                        imagePair.setDateSecond(getExifDate(barray));
+                        if (imagePair.getDateSecond() == null) {
+                            throw new RuntimeException(mContext.getString(R.string.err_no_exif)
+                                    + " " + mFilenameArray.get(idPair.getIdSecond()));
+                        }
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, e.getMessage());
+                        continue;
                     }
 
                     //Log.d(TAG, "Fetched new Image pair: " + mFilenameArray.get(idPair.getIdFirst())
@@ -339,9 +346,6 @@ public class ImagePairProducer {
                 Log.e(TAG, e.getMessage());
                 return false;
             } catch (JSchException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (RuntimeException e) {
                 Log.e(TAG, e.getMessage());
                 return false;
             } catch (ImageProcessingException e) {
