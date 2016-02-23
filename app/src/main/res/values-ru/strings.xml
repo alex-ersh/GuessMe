@@ -16,4 +16,5 @@
     <string name="welcome_2_part1">Вспомни,</string>
     <string name="welcome_2_part2">что было</string>
     <string name="welcome_2_part3">раньше?</string>
+    <string name="err_get_image_pair">Не удалось загрузить фоточки :(</string>
 </resources>

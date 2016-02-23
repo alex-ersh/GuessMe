@@ -50,9 +50,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Vector;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class ImagePairProducer {
     private static final String TAG = "ImagePairProducer";
@@ -98,14 +95,7 @@ public class ImagePairProducer {
 
     public void stopImageFetch() {
         mRunning = false;
-        if (mFetchAsyncTask != null) {
-            try {
-                mFetchAsyncTask.get(3000, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException|ExecutionException|TimeoutException e) {
-                Log.e(TAG, e.getMessage());
-                mFetchAsyncTask.cancel(true);
-            }
-        }
+        mFetchAsyncTask.cancel(true);
     }
 
     public ImagePair getNextImagePair() {
@@ -287,6 +277,10 @@ public class ImagePairProducer {
 
             try {
                 while (mRunning) {
+                    if (isCancelled()) {
+                        return false;
+                    }
+
                     if (!mIsConnected) {
                         connect();
                     }
@@ -295,10 +289,13 @@ public class ImagePairProducer {
                     ImagePair imagePair = new ImagePair();
                     ByteArrayOutputStream imgRaw = new ByteArrayOutputStream();
 
-                    mSftp.get(mFilenameArray.get(idPair.getIdFirst()), imgRaw);
-                    byte[] barray = imgRaw.toByteArray();
-
                     try {
+                        if (isCancelled()) {
+                            return false;
+                        }
+
+                        mSftp.get(mFilenameArray.get(idPair.getIdFirst()), imgRaw);
+                        byte[] barray = imgRaw.toByteArray();
                         imagePair.setImageFirst(BitmapFactory.decodeByteArray(barray, 0, barray.length));
                         if (imagePair.getImageFirst() == null) {
                             throw new RuntimeException(mContext.getString(R.string.err_decode_img)
@@ -308,6 +305,10 @@ public class ImagePairProducer {
                         if (imagePair.getDateFirst() == null) {
                             throw new RuntimeException(mContext.getString(R.string.err_no_exif)
                                     + " " + mFilenameArray.get(idPair.getIdFirst()));
+                        }
+
+                        if (isCancelled()) {
+                            return false;
                         }
 
                         imgRaw.reset();
@@ -332,6 +333,10 @@ public class ImagePairProducer {
                     //    + ", " + mFilenameArray.get(idPair.getIdSecond()));
 
                     while (mRunning) {
+                        if (isCancelled()) {
+                            return false;
+                        }
+
                         synchronized (this) {
                             if (mImagePairArray.size() < IMAGE_PAIR_AMOUNT) {
                                 mImagePairArray.add(imagePair);
@@ -339,7 +344,7 @@ public class ImagePairProducer {
                                 break;
                             }
                         }
-                        Thread.sleep(1000);
+                        Thread.sleep(250);
                     }
                 }
             } catch (SftpException e) {
@@ -360,6 +365,12 @@ public class ImagePairProducer {
             }
 
             return true;
+        }
+
+        @Override
+        protected void onCancelled(Boolean result) {
+            closeSftp();
+            mRunning = false;
         }
 
         @Override

@@ -21,16 +21,16 @@
         tools:showIn="@layout/activity_main"
         android:onClick="onContinue">
 
-        <TextView android:id="@+id/welcome_textview1"
+        <TextView android:id="@+id/welcome_textview1_2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
             android:typeface="serif"
             android:textSize="60sp"
             android:textColor="@color/colorWelcomeText"
-            android:layout_above="@+id/welcome_textview2" />
+            android:layout_above="@+id/welcome_textview2_2" />
 
-        <TextView android:id="@+id/welcome_textview2"
+        <TextView android:id="@+id/welcome_textview2_2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
@@ -45,7 +45,24 @@
             android:typeface="serif"
             android:textSize="60sp"
             android:textColor="@color/colorWelcomeText"
-            android:layout_below="@+id/welcome_textview2" />
+            android:layout_below="@+id/welcome_textview2_2" />
+
+        <TextView android:id="@+id/welcome_textview1_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:typeface="serif"
+            android:textSize="60sp"
+            android:textColor="@color/colorWelcomeText"
+            android:layout_above="@+id/welcome_textview2_1" />
+
+        <TextView android:id="@+id/welcome_textview2_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:typeface="serif"
+            android:textSize="60sp"
+            android:textColor="@color/colorWelcomeText"/>
 
     </RelativeLayout>
 

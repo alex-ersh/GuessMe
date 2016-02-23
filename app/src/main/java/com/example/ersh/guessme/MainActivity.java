@@ -27,7 +27,6 @@ package com.example.ersh.guessme;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -63,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     Animation mFadeInAnim;
     Animation mFadeOutAnim;
 
-    private long mLastClickTime = 0;
     int mCurrentScore = 0;
     Boolean mImgChoosingPending = false;
     ImagePairProducer mImageProducer;
@@ -83,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         mImgAnswerStatusView1 = findViewById(R.id.image1_answer_status_view);
         mImgAnswerStatusView2 = findViewById(R.id.image2_answer_status_view);
         mCenterProgressBarView = (ProgressBar) findViewById(R.id.center_progress_bar_view);
+        mCenterProgressBarView.setVisibility(View.INVISIBLE);
 
         mImgDateTextView1.setVisibility(View.INVISIBLE);
         mImgDateTextView2.setVisibility(View.INVISIBLE);
@@ -91,23 +90,38 @@ public class MainActivity extends AppCompatActivity {
 
         mFadeInAnim = AnimationUtils.loadAnimation(this, R.anim.fadein);
         mFadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fadeout);
+
+        mImageProducer = ImagePairProducer.getInstance(getApplicationContext());
+        mImageProducer.startImageFetch();
+
+        if (savedInstanceState == null) {
+            onNextPair(null);
+        }
+    }
+
+    @Override
+    protected  void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        mImageProducer = ImagePairProducer.getInstance(getApplicationContext());
         mImageProducer.startImageFetch();
-        onNextPair(null);
+
+        if (mCenterProgressBarView.getVisibility() == View.VISIBLE) {
+            clearImages();
+            onNextPair(null);
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mImageProducer.stopImageFetch();
         if (mGetImageAsyncTask != null) {
             mGetImageAsyncTask.cancel(true);
         }
+        mImageProducer.stopImageFetch();
     }
 
     @Override
@@ -117,12 +131,23 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    private void clearImages() {
+        mImageView1.setImageResource(android.R.color.transparent);
+        mImageView2.setImageResource(android.R.color.transparent);
+        mImgAnswerStatusView1.setBackgroundResource(android.R.color.transparent);
+        mImgAnswerStatusView2.setBackgroundResource(android.R.color.transparent);
+        mImgDateTextView1.setBackgroundResource(android.R.color.transparent);
+        mImgDateTextView1.setText("");
+        mImgDateTextView2.setBackgroundResource(android.R.color.transparent);
+        mImgDateTextView2.setText("");
+    }
+
     public void onNextPair(View v) {
-        // mis-clicking prevention
-        if (SystemClock.elapsedRealtime() - mLastClickTime < 300){
-            return;
+        if (mGetImageAsyncTask != null) {
+            if (mGetImageAsyncTask.getStatus() != AsyncTask.Status.FINISHED) {
+                return;
+            }
         }
-        mLastClickTime = SystemClock.elapsedRealtime();
 
         if (mImgChoosingPending) {
             if (v == mImageView1) {
@@ -165,11 +190,11 @@ public class MainActivity extends AppCompatActivity {
             mImgDateTextView1.startAnimation(mFadeOutAnim);
             mImgDateTextView2.setText(formatter.format(mCurImagePair.getDateSecond()));
             mImgDateTextView2.startAnimation(mFadeOutAnim);
-            mScoreTextView.setText(String.valueOf(mCurrentScore));
             mImgChoosingPending = false;
             return;
         }
 
+        mScoreTextView.setText(String.valueOf(mCurrentScore));
         mImgDateTextView1.startAnimation(mFadeInAnim);
         mImgDateTextView2.startAnimation(mFadeInAnim);
         if (mActiveImgAnswerStatusView != null) {
@@ -205,8 +230,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Boolean doInBackground(Void... params) {
             int tries = 0;
+            mImageProducer.startImageFetch();
             try {
                 while (tries++ < 20) {
+                    if (isCancelled()) {
+                        return false;
+                    }
                     mCurImagePair = mImageProducer.getNextImagePair();
                     if (mCurImagePair != null) {
                         //Log.d(TAG, "Got image pair");
@@ -222,9 +251,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
+        protected void onCancelled(Boolean result) {
+            clearImages();
+        }
+
+        @Override
         protected void onPostExecute(Boolean result) {
             if (!result) {
-                Snackbar.make(findViewById(R.id.image_view_1), getString(R.string.err_get_image_pair), Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(R.id.image_view_1),
+                        getString(R.string.err_get_image_pair), Snackbar.LENGTH_SHORT).show();
+                clearImages();
             }
             else {
                 mImageView1.setImageBitmap(mCurImagePair.getImageFirst());
