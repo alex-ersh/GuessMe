@@ -8,8 +8,8 @@ android {
         applicationId "com.example.ersh.guessme"
         minSdkVersion 10
         targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+        versionCode 12
+        versionName "0.10.0"
     }
     buildTypes {
         release {
@@ -24,7 +24,4 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.android.support:design:23.1.1'
-    compile files('libs/jsch-0.1.53.jar')
-    compile files('libs/metadata-extractor-2.8.1.jar')
-    compile files('libs/xmpcore-5.1.2.jar')
 }

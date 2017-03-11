@@ -7,7 +7,6 @@
     <string name="action_settings">Settings</string>
     <string name="regular_files_on_server">Regular files on server:</string>
     <string name="connect_fail">Connection failed</string>
-    <string name="err_not_connected">SFTP is not connected</string>
     <string name="err_rand_gen_tries">Maximum img id generation tries exceeded</string>
     <string name="err_incorrect_input">Incorrect input parameters</string>
     <string name="err_incorrect_input_values">Incorrect input parameters values</string>
@@ -23,4 +22,12 @@
     <string name="err_fetch_thread">Network error</string>
     <string name="err_get_image_pair">Image getting timeout</string>
     <string name="err_stop_fetch">Image fetching stop error</string>
+    <string name="saved_img_host">saved_img_host</string>
+    <string name="saved_u">saved_u</string>
+    <string name="saved_p">saved_p</string>
+    <string name="host_hint">Host</string>
+    <string name="login_hint">Username</string>
+    <string name="password_hint">Password</string>
+    <string name="ok_button">OK</string>
+    <string name="login_dlg_title">Enter login information</string>
 </resources>

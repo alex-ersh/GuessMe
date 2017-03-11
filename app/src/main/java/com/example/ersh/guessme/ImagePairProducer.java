@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016 alex-ersh
+Copyright (c) 2017 alex-ersh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,63 +24,123 @@ SOFTWARE.
 
 package com.example.ersh.guessme;
 
-import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.support.design.widget.Snackbar;
+import android.util.Base64;
 import android.util.Log;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Document;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
-public class ImagePairProducer {
-    private static final String TAG = "ImagePairProducer";
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
+class ImagePairProducer {
+    private static final String TAG = "ImagePairHttpProducer";
 
     private static final int IMAGE_PAIR_AMOUNT = 3;
     private Vector<String> mFilenameArray = new Vector<>();
     private LinkedList<ImagePair> mImagePairArray = new LinkedList<>();
-    private JSch mJsch;
-    private Session mSession;
-    private ChannelSftp mSftp;
-    private Boolean mIsConnected = false;
     private int mCurId1 = -1;
     private int mCurId2 = -1;
     private boolean mRunning = false;
     private AsyncTask<Void, Void, Boolean> mFetchAsyncTask;
-    private Context mContext;
+    private Resources mResources;
     private static ImagePairProducer mInstance;
     private Random m_Rand;
+    private SSLContext mSslContext;
+    private String mAuthStr;
+    private String mHost;
 
-    public static ImagePairProducer getInstance(Context context) {
+    static ImagePairProducer getInstance(Resources resources) {
         if (mInstance == null) {
-            mInstance = new ImagePairProducer(context);
+            mInstance = new ImagePairProducer(resources);
         }
         return mInstance;
     }
 
-    private ImagePairProducer(Context context) {
-        mContext = context;
+    private ImagePairProducer(Resources resources) {
+        mResources = resources;
+        mSslContext = GetSSLContext();
     }
 
-    public void startImageFetch() {
+    private SSLContext GetSSLContext() {
+        // Load CAs from an InputStream
+        SSLContext context;
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Certificate ca;
+            InputStream caInput = new BufferedInputStream(
+                    mResources.openRawResource(R.raw.ershweb_ca));
+            ca = cf.generateCertificate(caInput);
+
+            // Create a KeyStore containing our trusted CAs
+            String keyStoreType = KeyStore.getDefaultType();
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry("ca", ca);
+
+            // Create a TrustManager that trusts the CAs in our KeyStore
+            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+            tmf.init(keyStore);
+
+            // Create an SSLContext that uses our TrustManager
+            context = SSLContext.getInstance("TLS");
+            context.init(null, tmf.getTrustManagers(), null);
+        } catch (Exception e) {
+            return null;
+        }
+
+        return context;
+    }
+
+    boolean setAuth(String host, String username, String password) {
+        mHost = host;
+        mAuthStr = "Basic " + Base64.encodeToString((username + ":" + password).getBytes(),
+                                                    Base64.NO_WRAP);
+
+        Boolean result;
+        try {
+            result = new CheckCredentialsTask().execute().get();
+            if (!result) {
+                mAuthStr = null;
+                mHost = null;
+            }
+            return result;
+        } catch (InterruptedException e) {
+            return false;
+        } catch (ExecutionException e) {
+            return false;
+        }
+    }
+
+    void startImageFetch() {
         if (mRunning) {
             return;
         }
@@ -93,12 +153,12 @@ public class ImagePairProducer {
             mFetchAsyncTask = new FetchImagePairsTask().execute();
     }
 
-    public void stopImageFetch() {
+    void stopImageFetch() {
         mRunning = false;
         mFetchAsyncTask.cancel(true);
     }
 
-    public ImagePair getNextImagePair() {
+    ImagePair getNextImagePair() {
         synchronized (this) {
             if (!mImagePairArray.isEmpty()) {
                 return mImagePairArray.remove();
@@ -108,43 +168,41 @@ public class ImagePairProducer {
         return null;
     }
 
-    public class ImagePair {
-        private static final String TAG = "ImagePair";
-
+    class ImagePair {
         private Bitmap mImage1;
         private Bitmap mImage2;
         private Date mDate1;
         private Date mDate2;
 
-        public Date getDateFirst() {
+        Date getDateFirst() {
             return mDate1;
         }
 
-        public Date getDateSecond() {
+        Date getDateSecond() {
             return mDate2;
         }
 
-        public void setDateFirst(Date date) {
+        void setDateFirst(Date date) {
             mDate1 = date;
         }
 
-        public void setDateSecond(Date date) {
+        void setDateSecond(Date date) {
             mDate2 = date;
         }
 
-        public Bitmap getImageFirst() {
+        Bitmap getImageFirst() {
             return mImage1;
         }
 
-        public Bitmap getImageSecond() {
+        Bitmap getImageSecond() {
             return mImage2;
         }
 
-        public void setImageFirst(Bitmap image) {
+        void setImageFirst(Bitmap image) {
             mImage1 = image;
         }
 
-        public void setImageSecond(Bitmap image) {
+        void setImageSecond(Bitmap image) {
             mImage2 = image;
         }
     }
@@ -167,65 +225,80 @@ public class ImagePairProducer {
         }
     }
 
-    private void closeSftp() {
-        if (mSftp != null) {
-            mSftp.disconnect();
-            mSftp = null;
-        }
-
-        if (mSession != null) {
-            mSession.disconnect();
-            mSession = null;
-        }
-
-        mJsch = null;
-        mIsConnected = false;
+    private void clear() {
         mFilenameArray.clear();
         mImagePairArray.clear();
         mCurId1 = -1;
         mCurId2 = -1;
     }
 
-    private void connect() throws JSchException, SftpException {
-        mIsConnected = false;
-        closeSftp();
-
-        mJsch = new JSch();
-        mJsch.addIdentity(SftpAccessInfo.SFTP_USER,
-                SftpAccessInfo.SFTP_PRIVATE_KEY.getBytes(), null,
-                SftpAccessInfo.SFTP_PASS.getBytes());
-        JSch.setConfig("StrictHostKeyChecking", "no");
-
-        mSession = mJsch.getSession(SftpAccessInfo.SFTP_USER,
-                SftpAccessInfo.SFTP_HOST, SftpAccessInfo.SFTP_PORT);
-        mSession.connect();
-
-        mSftp = (ChannelSftp) mSession.openChannel("sftp");
-        mSftp.connect();
-        @SuppressWarnings("unchecked")
-        Vector<ChannelSftp.LsEntry> filelist = mSftp.ls(".");
-
-        mFilenameArray.clear();
-        for (ChannelSftp.LsEntry file : filelist) {
-            if (file.getAttrs().isReg())
-            {
-                String name = file.getFilename();
-                //Log.d(TAG, name);
-                mFilenameArray.add(name);
+    private HttpsURLConnection getConnection(String url) throws IOException {
+        HttpsURLConnection connection = null;
+        try {
+            connection = (HttpsURLConnection) new URL(url).openConnection();
+            connection.setSSLSocketFactory(mSslContext.getSocketFactory());
+            connection.setReadTimeout(3000);
+            connection.setConnectTimeout(3000);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", mAuthStr);
+            connection.setDoInput(true);
+            connection.connect();
+        } catch (IOException e) {
+            if (connection != null) {
+                connection.disconnect();
             }
+            throw e;
+        }
+        return connection;
+    }
+
+    private byte[] getImage(String imageUrl) throws IOException {
+        HttpsURLConnection connection = getConnection(imageUrl);
+        int responseCode = connection.getResponseCode();
+        if (responseCode != HttpsURLConnection.HTTP_OK) {
+            throw new IOException("HTTP error code: " + responseCode);
         }
 
-        //Log.i(TAG, mContext.getString(R.string.regular_files_on_server) + mFilenameArray.size());
-        mIsConnected = true;
+        InputStream is = connection.getInputStream();
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        int nRead;
+        byte[] data = new byte[16384];
+        while ((nRead = is.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+        buffer.flush();
+        return buffer.toByteArray();
+    }
+
+    private void getImageListFromServer() {
+        mFilenameArray.clear();
+
+        try {
+            HttpsURLConnection connection = getConnection(mHost);
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpsURLConnection.HTTP_OK) {
+                throw new IOException("HTTP error code: " + responseCode);
+            }
+
+            String regexp = "^" + mHost + "(.+)\\.jpg$";
+            Pattern pattern = Pattern.compile(regexp);
+
+            Document doc = Jsoup.parse(connection.getInputStream(), "UTF-8", mHost);
+            for (Element element: doc.select("a")) {
+                String link = element.attr("abs:href");
+                if (pattern.matcher(link).matches()) {
+                    mFilenameArray.add(link);
+                }
+            }
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
+        }
     }
 
     private IdPair calcNextIdPair() throws RuntimeException {
-        if (!mIsConnected) {
-            throw new RuntimeException(mContext.getString(R.string.err_not_connected));
-        }
-
         if (mFilenameArray.size() < 3) {
-            throw new RuntimeException(mContext.getString(R.string.err_no_images_names));
+            throw new RuntimeException(mResources.getString(R.string.err_no_images_names));
         }
 
         final int MAX_TRIES = 100;
@@ -235,7 +308,7 @@ public class ImagePairProducer {
         while (true) {
             tries++;
             if (tries > MAX_TRIES) {
-                throw new RuntimeException(mContext.getString(R.string.err_rand_gen_tries));
+                throw new RuntimeException(mResources.getString(R.string.err_rand_gen_tries));
             }
             val = m_Rand.nextInt(mFilenameArray.size());
             if (val == mCurId1) { continue; }
@@ -244,7 +317,7 @@ public class ImagePairProducer {
             while (true) {
                 tries++;
                 if (tries > MAX_TRIES) {
-                    throw new RuntimeException(mContext.getString(R.string.err_rand_gen_tries));
+                    throw new RuntimeException(mResources.getString(R.string.err_rand_gen_tries));
                 }
                 val = m_Rand.nextInt(mFilenameArray.size());
                 if ((val == mCurId2) || (val == mCurId1)) { continue; }
@@ -276,34 +349,30 @@ public class ImagePairProducer {
             mRunning = true;
 
             try {
+                getImageListFromServer();
+
                 while (mRunning) {
                     if (isCancelled()) {
                         return false;
                     }
 
-                    if (!mIsConnected) {
-                        connect();
-                    }
-
                     IdPair idPair = calcNextIdPair();
                     ImagePair imagePair = new ImagePair();
-                    ByteArrayOutputStream imgRaw = new ByteArrayOutputStream();
 
                     try {
                         if (isCancelled()) {
                             return false;
                         }
 
-                        mSftp.get(mFilenameArray.get(idPair.getIdFirst()), imgRaw);
-                        byte[] barray = imgRaw.toByteArray();
-                        imagePair.setImageFirst(BitmapFactory.decodeByteArray(barray, 0, barray.length));
+                        byte[] imgRaw = getImage(mFilenameArray.get(idPair.getIdFirst()));
+                        imagePair.setImageFirst(BitmapFactory.decodeByteArray(imgRaw, 0, imgRaw.length));
                         if (imagePair.getImageFirst() == null) {
-                            throw new RuntimeException(mContext.getString(R.string.err_decode_img)
+                            throw new RuntimeException(mResources.getString(R.string.err_decode_img)
                                     + " " + mFilenameArray.get(idPair.getIdFirst()));
                         }
-                        imagePair.setDateFirst(getExifDate(barray));
+                        imagePair.setDateFirst(getExifDate(imgRaw));
                         if (imagePair.getDateFirst() == null) {
-                            throw new RuntimeException(mContext.getString(R.string.err_no_exif)
+                            throw new RuntimeException(mResources.getString(R.string.err_no_exif)
                                     + " " + mFilenameArray.get(idPair.getIdFirst()));
                         }
 
@@ -311,17 +380,15 @@ public class ImagePairProducer {
                             return false;
                         }
 
-                        imgRaw.reset();
-                        mSftp.get(mFilenameArray.get(idPair.getIdSecond()), imgRaw);
-                        barray = imgRaw.toByteArray();
-                        imagePair.setImageSecond(BitmapFactory.decodeByteArray(barray, 0, barray.length));
+                        imgRaw = getImage(mFilenameArray.get(idPair.getIdSecond()));
+                        imagePair.setImageSecond(BitmapFactory.decodeByteArray(imgRaw, 0, imgRaw.length));
                         if (imagePair.getImageSecond() == null) {
-                            throw new RuntimeException(mContext.getString(R.string.err_decode_img)
+                            throw new RuntimeException(mResources.getString(R.string.err_decode_img)
                                     + " " + mFilenameArray.get(idPair.getIdSecond()));
                         }
-                        imagePair.setDateSecond(getExifDate(barray));
+                        imagePair.setDateSecond(getExifDate(imgRaw));
                         if (imagePair.getDateSecond() == null) {
-                            throw new RuntimeException(mContext.getString(R.string.err_no_exif)
+                            throw new RuntimeException(mResources.getString(R.string.err_no_exif)
                                     + " " + mFilenameArray.get(idPair.getIdSecond()));
                         }
                     } catch (RuntimeException e) {
@@ -347,12 +414,6 @@ public class ImagePairProducer {
                         Thread.sleep(250);
                     }
                 }
-            } catch (SftpException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (JSchException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
             } catch (ImageProcessingException e) {
                 Log.e(TAG, e.getMessage());
                 return false;
@@ -362,6 +423,9 @@ public class ImagePairProducer {
             } catch (InterruptedException e) {
                 Log.e(TAG, e.getMessage());
                 return false;
+            } catch (RuntimeException e) {
+                Log.e(TAG, e.getMessage());
+                return false;
             }
 
             return true;
@@ -369,18 +433,39 @@ public class ImagePairProducer {
 
         @Override
         protected void onCancelled(Boolean result) {
-            closeSftp();
+            clear();
             mRunning = false;
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
-            if (!result) {
-                //Snackbar.make(findViewById(R.id.image_view_1), mContext.getString(R.string.err_fetch_thread), Snackbar.LENGTH_SHORT).show();
+            /*if (!result) {
+                Snackbar.make(findViewById(R.id.image_view_1), mResourses.getString(
+                    R.string.err_fetch_thread), Snackbar.LENGTH_SHORT).show();
+            }*/
+
+            clear();
+            mRunning = false;
+        }
+    }
+
+    private class CheckCredentialsTask extends AsyncTask<Void, Void, Boolean> {
+        private static final String TAG = "CheckCredentialsTask";
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            try {
+                HttpsURLConnection connection = getConnection(mHost);
+                int responseCode = connection.getResponseCode();
+                if (responseCode != HttpsURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP error code: " + responseCode);
+                }
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage());
+                return false;
             }
 
-            closeSftp();
-            mRunning = false;
+            return true;
         }
     }
 }

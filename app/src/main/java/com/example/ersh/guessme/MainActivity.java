@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016 alex-ersh
+Copyright (c) 2017 alex-ersh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -47,8 +47,6 @@ import static com.example.ersh.guessme.R.drawable.img_date_textview_correct;
 import static com.example.ersh.guessme.R.drawable.img_date_textview_wrong;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
-
     ImageView mImageView1;
     ImageView mImageView2;
     TextView mScoreTextView;
@@ -91,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
         mFadeInAnim = AnimationUtils.loadAnimation(this, R.anim.fadein);
         mFadeOutAnim = AnimationUtils.loadAnimation(this, R.anim.fadeout);
 
-        mImageProducer = ImagePairProducer.getInstance(getApplicationContext());
+        mImageProducer = ImagePairProducer.getInstance(getResources());
         mImageProducer.startImageFetch();
 
         if (savedInstanceState == null) {
