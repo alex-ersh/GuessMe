@@ -38,8 +38,8 @@ import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -54,7 +54,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.Random;
 import java.util.Vector;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -121,24 +120,33 @@ class ImagePairProducer {
         return context;
     }
 
-    boolean setAuth(String host, String username, String password) {
+    enum CredentialsCheckStatus {
+        CONNECT_ERROR, OK, WRONG_CREDENTIALS
+    }
+
+    CredentialsCheckStatus setAuth(String host, String username, String password) {
         mHost = host;
         mAuthStr = "Basic " + Base64.encodeToString((username + ":" + password).getBytes(),
                 Base64.NO_WRAP);
 
-        Boolean result;
         try {
-            result = new CheckCredentialsTask().execute().get();
-            if (!result) {
+            HttpsURLConnection connection = getConnection(mHost);
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpsURLConnection.HTTP_OK) {
                 mAuthStr = null;
                 mHost = null;
+                if (responseCode == HttpsURLConnection.HTTP_UNAUTHORIZED) {
+                    return CredentialsCheckStatus.WRONG_CREDENTIALS;
+                } else {
+                    return CredentialsCheckStatus.CONNECT_ERROR;
+                }
             }
-            return result;
-        } catch (InterruptedException e) {
-            return false;
-        } catch (ExecutionException e) {
-            return false;
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
+            return CredentialsCheckStatus.CONNECT_ERROR;
         }
+
+        return CredentialsCheckStatus.OK;
     }
 
     void startImageFetch() {
@@ -238,8 +246,8 @@ class ImagePairProducer {
         try {
             connection = (HttpsURLConnection) new URL(url).openConnection();
             connection.setSSLSocketFactory(mSslContext.getSocketFactory());
-            connection.setReadTimeout(3000);
-            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(2000);
+            connection.setConnectTimeout(2000);
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Authorization", mAuthStr);
             connection.setDoInput(true);
@@ -419,16 +427,7 @@ class ImagePairProducer {
                         Thread.sleep(250);
                     }
                 }
-            } catch (ImageProcessingException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (InterruptedException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            } catch (RuntimeException e) {
+            } catch (ImageProcessingException | IOException | InterruptedException | RuntimeException e) {
                 Log.e(TAG, e.getMessage());
                 return false;
             }
@@ -451,26 +450,6 @@ class ImagePairProducer {
 
             clear();
             mRunning = false;
-        }
-    }
-
-    private class CheckCredentialsTask extends AsyncTask<Void, Void, Boolean> {
-        private static final String TAG = "CheckCredentialsTask";
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            try {
-                HttpsURLConnection connection = getConnection(mHost);
-                int responseCode = connection.getResponseCode();
-                if (responseCode != HttpsURLConnection.HTTP_OK) {
-                    throw new IOException("HTTP error code: " + responseCode);
-                }
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage());
-                return false;
-            }
-
-            return true;
         }
     }
 }

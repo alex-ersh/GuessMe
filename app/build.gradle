@@ -8,8 +8,8 @@ android {
         applicationId "com.example.ersh.guessme"
         minSdkVersion 10
         targetSdkVersion 25
-        versionCode 12
-        versionName "0.10.0"
+        versionCode 13
+        versionName "0.10.1"
     }
     buildTypes {
         release {
