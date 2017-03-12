@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package com.example.ersh.guessme;
+package xyz.ershweb.guessme;
 
 import android.os.AsyncTask;
 import android.os.Build;
@@ -43,8 +43,8 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import static com.example.ersh.guessme.R.drawable.img_date_textview_correct;
-import static com.example.ersh.guessme.R.drawable.img_date_textview_wrong;
+import static xyz.ershweb.guessme.R.drawable.img_date_textview_correct;
+import static xyz.ershweb.guessme.R.drawable.img_date_textview_wrong;
 
 public class MainActivity extends AppCompatActivity {
     ImageView mImageView1;

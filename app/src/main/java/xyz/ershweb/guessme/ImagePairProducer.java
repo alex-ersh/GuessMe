@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package com.example.ersh.guessme;
+package xyz.ershweb.guessme;
 
 import android.content.res.Resources;
 import android.graphics.Bitmap;

@@ -1,4 +1,4 @@
-package com.example.ersh.guessme;
+package xyz.ershweb.guessme;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
