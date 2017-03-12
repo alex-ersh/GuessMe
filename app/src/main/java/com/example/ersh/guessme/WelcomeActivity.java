@@ -69,8 +69,7 @@ public class WelcomeActivity extends AppCompatActivity {
                         ImagePairProducer imp = ImagePairProducer.getInstance(getResources());
                         if (!imp.setAuth(host, username, password)) {
                             promptLogin();
-                        }
-                        else {
+                        } else {
                             SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
                             SharedPreferences.Editor editor = sharedPref.edit();
                             editor.putString(getString(R.string.saved_img_host), host);

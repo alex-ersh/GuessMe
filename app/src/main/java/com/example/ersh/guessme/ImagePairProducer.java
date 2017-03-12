@@ -36,6 +36,7 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Document;
@@ -123,7 +124,7 @@ class ImagePairProducer {
     boolean setAuth(String host, String username, String password) {
         mHost = host;
         mAuthStr = "Basic " + Base64.encodeToString((username + ":" + password).getBytes(),
-                                                    Base64.NO_WRAP);
+                Base64.NO_WRAP);
 
         Boolean result;
         try {
@@ -285,7 +286,7 @@ class ImagePairProducer {
             Pattern pattern = Pattern.compile(regexp);
 
             Document doc = Jsoup.parse(connection.getInputStream(), "UTF-8", mHost);
-            for (Element element: doc.select("a")) {
+            for (Element element : doc.select("a")) {
                 String link = element.attr("abs:href");
                 if (pattern.matcher(link).matches()) {
                     mFilenameArray.add(link);
@@ -311,7 +312,9 @@ class ImagePairProducer {
                 throw new RuntimeException(mResources.getString(R.string.err_rand_gen_tries));
             }
             val = m_Rand.nextInt(mFilenameArray.size());
-            if (val == mCurId1) { continue; }
+            if (val == mCurId1) {
+                continue;
+            }
             mCurId1 = val;
 
             while (true) {
@@ -320,7 +323,9 @@ class ImagePairProducer {
                     throw new RuntimeException(mResources.getString(R.string.err_rand_gen_tries));
                 }
                 val = m_Rand.nextInt(mFilenameArray.size());
-                if ((val == mCurId2) || (val == mCurId1)) { continue; }
+                if ((val == mCurId2) || (val == mCurId1)) {
+                    continue;
+                }
                 mCurId2 = val;
                 break;
             }

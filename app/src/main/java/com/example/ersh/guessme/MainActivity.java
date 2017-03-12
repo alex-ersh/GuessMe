@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected  void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
@@ -259,8 +259,7 @@ public class MainActivity extends AppCompatActivity {
                 Snackbar.make(findViewById(R.id.image_view_1),
                         getString(R.string.err_get_image_pair), Snackbar.LENGTH_SHORT).show();
                 clearImages();
-            }
-            else {
+            } else {
                 mImageView1.setImageBitmap(mCurImagePair.getImageFirst());
                 mImageView1.startAnimation(mFadeOutAnim);
                 mImageView2.setImageBitmap(mCurImagePair.getImageSecond());
