@@ -101,7 +101,11 @@ public class WelcomeActivity extends AppCompatActivity {
         mLastHost = sharedPref.getString(getString(R.string.saved_img_host), "");
         mLastUsername = sharedPref.getString(getString(R.string.saved_u), "");
         String saved_password = sharedPref.getString(getString(R.string.saved_p), "");
-        startLoggingIn(mLastHost, mLastUsername, saved_password);
+        if (mLastHost.isEmpty()) {
+            promptLogin();
+        } else {
+            startLoggingIn(mLastHost, mLastUsername, saved_password);
+        }
     }
 
     @Override

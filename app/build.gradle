@@ -7,8 +7,8 @@ android {
         applicationId 'xyz.ershweb.guessme'
         minSdkVersion 10
         targetSdkVersion 25
-        versionCode 14
-        versionName "0.10.1"
+        versionCode 15
+        versionName "0.10.2"
     }
     buildTypes {
         release {
