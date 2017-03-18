@@ -29,7 +29,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,6 +41,8 @@ import android.widget.TextView;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import timber.log.Timber;
 
 import static xyz.ershweb.guessme.R.drawable.img_date_textview_correct;
 import static xyz.ershweb.guessme.R.drawable.img_date_textview_wrong;
@@ -223,7 +224,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class GetImageTask extends AsyncTask<Void, Void, Boolean> {
-        private static final String TAG = "GetImageTask";
 
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -236,13 +236,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                     mCurImagePair = mImageProducer.getNextImagePair();
                     if (mCurImagePair != null) {
-                        //Log.d(TAG, "Got image pair");
                         return true;
                     }
                     Thread.sleep(250);
                 }
             } catch (InterruptedException e) {
-                Log.e(TAG, e.getMessage());
+                Timber.e(e.getMessage());
             }
 
             return false;

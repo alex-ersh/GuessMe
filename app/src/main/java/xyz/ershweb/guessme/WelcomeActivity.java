@@ -34,7 +34,6 @@ import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
@@ -45,8 +44,9 @@ import android.widget.TextView;
 
 import java.util.concurrent.ExecutionException;
 
+import timber.log.Timber;
+
 public class WelcomeActivity extends AppCompatActivity {
-    private static final String TAG = "WelcomeActivity";
     // Very bad implementation due to animation problems.
     // 5 views instead of 3.
     TextView mWelcomeTextView1_1;
@@ -111,6 +111,11 @@ public class WelcomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (BuildConfig.DEBUG) {
+            Timber.plant(new Timber.DebugTree());
+        }
+
         setContentView(R.layout.activity_welcome);
         mWelcomeTextView1_1 = (TextView) findViewById(R.id.welcome_textview1_1);
         mWelcomeTextView2_1 = (TextView) findViewById(R.id.welcome_textview2_1);
@@ -131,7 +136,7 @@ public class WelcomeActivity extends AppCompatActivity {
             try {
                 mLoginTask.get();
             } catch (InterruptedException | ExecutionException e) {
-                Log.e(TAG, e.getMessage());
+                Timber.e(e.getMessage());
             }
         }
 

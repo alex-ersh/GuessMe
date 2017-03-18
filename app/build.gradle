@@ -7,8 +7,8 @@ android {
         applicationId 'xyz.ershweb.guessme'
         minSdkVersion 10
         targetSdkVersion 25
-        versionCode 15
-        versionName "0.10.2"
+        versionCode 16
+        versionName "0.10.3"
     }
     buildTypes {
         release {
@@ -25,4 +25,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:25.2.0'
     compile 'com.android.support:design:25.2.0'
+    compile 'com.jakewharton.timber:timber:4.5.1'
 }
