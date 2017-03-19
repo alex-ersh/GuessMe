@@ -7,3 +7,4 @@ It uses the following external libraries:
 
 * metadata-extractor
 * jsoup
+* Timber
