@@ -30,7 +30,6 @@ import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Base64;
-import android.util.Log;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
@@ -60,8 +59,9 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import timber.log.Timber;
+
 class ImagePairProducer {
-    private static final String TAG = "ImagePairHttpProducer";
 
     private static final int IMAGE_PAIR_AMOUNT = 3;
     private Vector<String> mFilenameArray = new Vector<>();
@@ -142,7 +142,7 @@ class ImagePairProducer {
                 }
             }
         } catch (IOException e) {
-            Log.e(TAG, e.getMessage());
+            Timber.e(e.getMessage());
             return CredentialsCheckStatus.CONNECT_ERROR;
         }
 
@@ -301,7 +301,7 @@ class ImagePairProducer {
                 }
             }
         } catch (IOException e) {
-            Log.e(TAG, e.getMessage());
+            Timber.e(e.getMessage());
         }
     }
 
@@ -355,7 +355,6 @@ class ImagePairProducer {
     }
 
     private class FetchImagePairsTask extends AsyncTask<Void, Void, Boolean> {
-        private static final String TAG = "FetchImagePairsTask";
 
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -405,12 +404,9 @@ class ImagePairProducer {
                                     + " " + mFilenameArray.get(idPair.getIdSecond()));
                         }
                     } catch (RuntimeException e) {
-                        Log.e(TAG, e.getMessage());
+                        Timber.e(e.getMessage());
                         continue;
                     }
-
-                    //Log.d(TAG, "Fetched new Image pair: " + mFilenameArray.get(idPair.getIdFirst())
-                    //    + ", " + mFilenameArray.get(idPair.getIdSecond()));
 
                     while (mRunning) {
                         if (isCancelled()) {
@@ -420,7 +416,6 @@ class ImagePairProducer {
                         synchronized (this) {
                             if (mImagePairArray.size() < IMAGE_PAIR_AMOUNT) {
                                 mImagePairArray.add(imagePair);
-                                //Log.d(TAG, "Added new pair to array");
                                 break;
                             }
                         }
@@ -428,7 +423,7 @@ class ImagePairProducer {
                     }
                 }
             } catch (ImageProcessingException | IOException | InterruptedException | RuntimeException e) {
-                Log.e(TAG, e.getMessage());
+                Timber.e(e.getMessage());
                 return false;
             }
 
